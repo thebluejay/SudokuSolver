@@ -25,8 +25,6 @@
 # in it that might make it harder to detect square shapes.
 
 
-from __future__ import division
-
 import sys
 import os
 import subprocess
@@ -58,11 +56,11 @@ def debugImage(img, name):
 
 def printSudoku(su):
     """ Prints a sudoku thingy nicely. """
-    print "+-------+-------+-------+"
+    print("+-------+-------+-------+")
     for i in range(9):
-        print "| {} {} {} | {} {} {} | {} {} {} |".format(*su[i]).replace("0"," ")
+        print("| {} {} {} | {} {} {} | {} {} {} |".format(*su[i]).replace("0"," "))
         if (i+1) % 3 == 0:
-            print "+-------+-------+-------+"
+            print("+-------+-------+-------+")
 
 def projectImage(img):
     """ Compensates for perspective by finding the outline and making the sudoku a square again. """
@@ -130,7 +128,7 @@ def extractSudoku(img):
                 os.remove(tesinput)
                 os.remove(tesoutput)
             except:
-                print "Failed to delete temp files. Probably some bullshit with permissions."
+                print("Failed to delete temp files. Probably some bullshit with permissions.")
                 sys.exit(1)
 
             sudoku_temp.append(digit)
@@ -205,14 +203,14 @@ def solveSudoku(sudoku, toplevel=True):
 
 def main():
     if len(sys.argv) < 2:
-        print "Please supply a path to an image file as an argument."
+        print("Please supply a path to an image file as an argument.")
         sys.exit(1)
 
     try:
         img = imread(sys.argv[1], 1)
         assert(img != None)
     except:
-        print "Could not open image. Please make sure that the file you specified exists and is a valid image file."
+        print("Could not open image. Please make sure that the file you specified exists and is a valid image file.")
         sys.exit(1)
 
     # Resize the image to a more appropriate size
@@ -233,9 +231,9 @@ def main():
         try:
             projection = projectImage(img)
         except:
-            print "\rPreparing image ... failed."
+            print("\rPreparing image ... failed.")
             sys.exit(1)
-    print "\rPreparing image ... done."
+    print("\rPreparing image ... done.")
 
     sys.stdout.write("Extracting data ...")
     sys.stdout.flush()
@@ -245,13 +243,13 @@ def main():
         try:
             sudoku = extractSudoku(projection)
         except:
-            print "\rExtracting data ... failed."
+            print("\rExtracting data ... failed.")
             sys.exit(1)
-    print "\rExtracting data ... done."
+    print("\rExtracting data ... done.")
 
-    print ""
+    print("")
     printSudoku(sudoku)
-    print ""
+    print("")
 
     sys.stdout.write("Calculating solution ...")
     sys.stdout.flush()
@@ -261,13 +259,13 @@ def main():
         try:
             solution = solveSudoku(sudoku)
         except:
-            print "\rCalculating solution ... failed."
+            print("\rCalculating solution ... failed.")
             sys.exit(1)
-    print "\rCalculating solution ... done."
+    print("\rCalculating solution ... done.")
 
-    print ""
+    print("")
     printSudoku(solution)
-    print ""
+    print("")
 
 
 if __name__ == "__main__":
