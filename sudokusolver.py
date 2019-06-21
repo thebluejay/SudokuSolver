@@ -31,7 +31,7 @@ import subprocess
 import copy
 import numpy as np
 
-from cv2 import *
+import cv2
 
 DEBUG = False
 
@@ -49,10 +49,10 @@ def debug_image(img, name):
     if not DEBUG:
         return
 
-    namedWindow(name)
-    imshow(name, img)
+    cv2.namedWindow(name)
+    cv2.imshow(name, img)
     #imwrite(name+".jpg", img) # uncomment if you want to save the individual steps
-    waitKey()
+    cv2.waitKey()
 
 def print_sudoku(sudoku):
     """ Prints a sudoku thingy nicely. """
@@ -65,27 +65,27 @@ def print_sudoku(sudoku):
 def project_image(img):
     """ Compensates for perspective by finding the outline and making the sudoku a square again. """
     # Grayscale image for easier processing
-    gray = cvtColor(img, COLOR_BGR2GRAY)
-    canny = Canny(gray, 50, 200)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    canny = cv2.Canny(gray, 50, 200)
 
     debug_image(canny, "edgedetected")
 
     # Detect contours
-    contours, hierarchy = findContours(canny, RETR_TREE, CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(canny, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     # Filter contours for things that might be squares
     squares = []
     for contour in contours:
-        contour = approxPolyDP(contour, 0.02 * arcLength(contour, True), True)
-        if len(contour) == 4 and isContourConvex(contour):
+        contour = cv2.approxPolyDP(contour, 0.02 * cv2.arcLength(contour, True), True)
+        if len(contour) == 4 and cv2.isContourConvex(contour):
             squares.append(contour)
 
     # Find the biggest one.
-    squares = [sorted(squares, key=lambda x: contourArea(x))[-1]]
+    squares = [sorted(squares, key=lambda x: cv2.contourArea(x))[-1]]
     squares[0] = squares[0].reshape(-1, 2)
 
     imgcontours = img
-    drawContours(imgcontours, squares, -1, (0, 0, 255))
+    cv2.drawContours(imgcontours, squares, -1, (0, 0, 255))
     debug_image(imgcontours, "squares")
 
     # Arrange the border points of the contour we found so that they match points_new.
@@ -96,8 +96,8 @@ def project_image(img):
     points_new = np.float32([[0, 0], [0, 450], [450, 0], [450, 450]])
 
     # Warp the image to be a square.
-    pers_trans = getPerspectiveTransform(points_original, points_new)
-    fixed_image = warpPerspective(img, pers_trans, (450, 450))
+    pers_trans = cv2.getPerspectiveTransform(points_original, points_new)
+    fixed_image = cv2.warpPerspective(img, pers_trans, (450, 450))
 
     debug_image(fixed_image, "perspectivefix")
 
@@ -111,12 +111,12 @@ def extract_sudoku(img):
         for col in range(9):
             border = 5 # how much to cut off the edges to eliminate any of the lines between the cells
             subimg = img[row*50+border:(row+1)*50-border, col*50+border:(col+1)*50-border]
-            subimg = cvtColor(subimg, COLOR_BGR2RGB)
-            ret, thresh = threshold(subimg, 127, 255, THRESH_BINARY) # black-and-white for most contrast
+            subimg = cv2.cvtColor(subimg, cv2.COLOR_BGR2RGB)
+            ret, thresh = cv2.threshold(subimg, 127, 255, cv2.THRESH_BINARY) # black-and-white for most contrast
 
             tesinput = find_free_filename("jpg")
             tesoutput = find_free_filename("txt")
-            imwrite(tesinput, thresh)
+            cv2.imwrite(tesinput, thresh)
 
             try:
                 subprocess.check_output("tesseract "+tesinput+" "+tesoutput[:-4]+" -psm 10", shell=True)
@@ -207,7 +207,7 @@ def main():
         sys.exit(1)
 
     try:
-        img = imread(sys.argv[1], 1)
+        img = cv2.imread(sys.argv[1], 1)
         assert img != None
     except:
         print("Could not open image. Please make sure that the file you specified exists and is a valid image file.")
@@ -219,7 +219,7 @@ def main():
     else:
         sizecoef = 800 / img.shape[1]
     if sizecoef < 1:
-        img = resize(img, (0, 0), fx=sizecoef, fy=sizecoef)
+        img = cv2.resize(img, (0, 0), fx=sizecoef, fy=sizecoef)
 
     debug_image(img, "img")
 
