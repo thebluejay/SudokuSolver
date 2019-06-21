@@ -185,7 +185,7 @@ def solve_sudoku(sudoku, toplevel=True):
                         temp = copy.deepcopy(sudoku)
                         temp[row][col] = cell
                         solution = solve_sudoku(temp, False)
-                        if solution != None:
+                        if solution is not None:
                             solutions.append(solution)
 
                     if toplevel:
@@ -208,7 +208,7 @@ def main():
 
     try:
         img = cv2.imread(sys.argv[1], 1)
-        assert img != None
+        assert img is not None
     except:
         print("Could not open image. Please make sure that the file you specified exists and is a valid image file.")
         sys.exit(1)
