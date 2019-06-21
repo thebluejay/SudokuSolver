@@ -33,9 +33,9 @@ import numpy as np
 
 from cv2 import *
 
-debug = False
+DEBUG = False
 
-def findFreeFilename(ext):
+def find_free_filename(ext):
     """ Finds a free filename to store a temporary file under. """
     parent = os.path.realpath(__file__)
     for i in range(100):
@@ -44,31 +44,31 @@ def findFreeFilename(ext):
             return filename
     return filename
 
-def debugImage(img, name):
+def debug_image(img, name):
     """ Shows an image for debugging. """
-    if not debug:
-        return None
+    if not DEBUG:
+        return
 
     namedWindow(name)
     imshow(name, img)
     #imwrite(name+".jpg", img) # uncomment if you want to save the individual steps
     waitKey()
 
-def printSudoku(su):
+def print_sudoku(sudoku):
     """ Prints a sudoku thingy nicely. """
     print("+-------+-------+-------+")
-    for i in range(9):
-        print("| {} {} {} | {} {} {} | {} {} {} |".format(*su[i]).replace("0"," "))
-        if (i+1) % 3 == 0:
+    for row in range(9):
+        print("| {} {} {} | {} {} {} | {} {} {} |".format(*sudoku[row]).replace("0", " "))
+        if (row+1) % 3 == 0:
             print("+-------+-------+-------+")
 
-def projectImage(img):
+def project_image(img):
     """ Compensates for perspective by finding the outline and making the sudoku a square again. """
     # Grayscale image for easier processing
     gray = cvtColor(img, COLOR_BGR2GRAY)
     canny = Canny(gray, 50, 200)
 
-    debugImage(canny, "edgedetected")
+    debug_image(canny, "edgedetected")
 
     # Detect contours
     contours, hierarchy = findContours(canny, RETR_TREE, CHAIN_APPROX_SIMPLE)
@@ -85,37 +85,37 @@ def projectImage(img):
     squares[0] = squares[0].reshape(-1, 2)
 
     imgcontours = img
-    drawContours(imgcontours, squares, -1, (0,0,255))
-    debugImage(imgcontours, "squares")
+    drawContours(imgcontours, squares, -1, (0, 0, 255))
+    debug_image(imgcontours, "squares")
 
-    # Arrange the border points of the contour we found so that they match pointsNew.
-    pointsOriginal = sorted(squares[0], key=lambda x: x[0])
-    pointsOriginal[0:2] = sorted(pointsOriginal[0:2], key=lambda x: x[1])
-    pointsOriginal[2:4] = sorted(pointsOriginal[2:4], key=lambda x: x[1])
-    pointsOriginal = np.float32(pointsOriginal)
-    pointsNew = np.float32([[0,0],[0,450],[450,0],[450,450]])
+    # Arrange the border points of the contour we found so that they match points_new.
+    points_original = sorted(squares[0], key=lambda x: x[0])
+    points_original[0:2] = sorted(points_original[0:2], key=lambda x: x[1])
+    points_original[2:4] = sorted(points_original[2:4], key=lambda x: x[1])
+    points_original = np.float32(points_original)
+    points_new = np.float32([[0, 0], [0, 450], [450, 0], [450, 450]])
 
     # Warp the image to be a square.
-    persTrans = getPerspectiveTransform(pointsOriginal, pointsNew)
-    fixedImage = warpPerspective(img, persTrans, (450,450))
+    pers_trans = getPerspectiveTransform(points_original, points_new)
+    fixed_image = warpPerspective(img, pers_trans, (450, 450))
 
-    debugImage(fixedImage, "perspectivefix")
+    debug_image(fixed_image, "perspectivefix")
 
-    return fixedImage
+    return fixed_image
 
-def extractSudoku(img):
+def extract_sudoku(img):
     """ Extracts the actual numbers from the image using tesseract. """
     sudoku = []
-    for i in range(9):
+    for row in range(9):
         sudoku_temp = []
-        for j in range(9):
+        for col in range(9):
             border = 5 # how much to cut off the edges to eliminate any of the lines between the cells
-            subimg = img[i*50+border:(i+1)*50-border, j*50+border:(j+1)*50-border]
+            subimg = img[row*50+border:(row+1)*50-border, col*50+border:(col+1)*50-border]
             subimg = cvtColor(subimg, COLOR_BGR2RGB)
-            ret,thresh = threshold(subimg,127,255,THRESH_BINARY) # black-and-white for most contrast
+            ret, thresh = threshold(subimg, 127, 255, THRESH_BINARY) # black-and-white for most contrast
 
-            tesinput = findFreeFilename("jpg")
-            tesoutput = findFreeFilename("txt")
+            tesinput = find_free_filename("jpg")
+            tesoutput = find_free_filename("txt")
             imwrite(tesinput, thresh)
 
             try:
@@ -132,72 +132,72 @@ def extractSudoku(img):
                 sys.exit(1)
 
             sudoku_temp.append(digit)
-            sys.stdout.write("\r"+"Extracting data ... "+str(int((i*9+j+1)/81*100)).rjust(3)+"%")
+            sys.stdout.write("\r"+"Extracting data ... "+str(int((row*9+col+1)/81*100)).rjust(3)+"%")
             sys.stdout.flush()
         sudoku.append(sudoku_temp)
 
     return sudoku
 
-def isValidSolution(sudoku):
+def is_valid_solution(sudoku):
     """ Checks if the given sudoku is a valid solution. """
     if len(sudoku) != 9:
         return False
 
     # Check rows
-    for i in sudoku:
-        if sorted(i) != [1,2,3,4,5,6,7,8,9]:
+    for row in sudoku:
+        if sorted(row) != [1, 2, 3, 4, 5, 6, 7, 8, 9]:
             return False
 
     # Check columns
-    for i in range(9):
+    for row in range(9):
         temp = []
-        for j in range(9):
-            temp.append(sudoku[j][i])
-        if sorted(temp) != [1,2,3,4,5,6,7,8,9]:
+        for col in range(9):
+            temp.append(sudoku[col][row])
+        if sorted(temp) != [1, 2, 3, 4, 5, 6, 7, 8, 9]:
             return False
 
     # Check clusters
-    for i in range(3):
-        for j in range(3):
-            temp = sudoku[i*3][j*3:j*3+3] + sudoku[i*3+1][j*3:j*3+3] + sudoku[i*3+2][j*3:j*3+3]
-            if sorted(temp) != [1,2,3,4,5,6,7,8,9]:
+    for row in range(3):
+        for col in range(3):
+            temp = sudoku[row*3][col*3:col*3+3] + sudoku[row*3+1][col*3:col*3+3] + sudoku[row*3+2][col*3:col*3+3]
+            if sorted(temp) != [1, 2, 3, 4, 5, 6, 7, 8, 9]:
                 return False
 
     return True
 
-def same_row(sudoku, i, j):
-    return sudoku[i]
+def same_row(sudoku, row):
+    return sudoku[row]
 
-def same_column(sudoku, i, j):
-    return [row[j] for row in sudoku]
+def same_column(sudoku, col):
+    return [row[col] for row in sudoku]
 
-def same_cluster(sudoku, i, j):
-    return sudoku[i//3*3][j//3*3:j//3*3+3] + sudoku[i//3*3+1][j//3*3:j//3*3+3] + sudoku[i//3*3+2][j//3*3:j//3*3+3]
+def same_cluster(sudoku, row, col):
+    return sudoku[row//3*3][col//3*3:col//3*3+3] + sudoku[row//3*3+1][col//3*3:col//3*3+3] + sudoku[row//3*3+2][col//3*3:col//3*3+3]
 
-def solveSudoku(sudoku, toplevel=True):
+def solve_sudoku(sudoku, toplevel=True):
     """ Solves the given sudoku with a simple backtrack; nothing fancy. """
     solutions = []
-    for i in range(9):
-        for j in range(9):
-            if sudoku[i][j] == 0:
-                for k in range(1,10):
-                    if not (k in same_row(sudoku,i,j) or k in same_column(sudoku,i,j) or k in same_cluster(sudoku,i,j)):
+    for row in range(9):
+        for col in range(9):
+            if sudoku[row][col] == 0:
+                for cell in range(1, 10):
+                    if not (cell in same_row(sudoku, row) or cell in same_column(sudoku, col) or cell in same_cluster(sudoku, row, col)):
                         temp = copy.deepcopy(sudoku)
-                        temp[i][j] = k
-                        solution = solveSudoku(temp, False)
+                        temp[row][col] = cell
+                        solution = solve_sudoku(temp, False)
                         if solution != None:
                             solutions.append(solution)
 
                     if toplevel:
-                        sys.stdout.write("\rCalculating solution ... "+str(k*10).rjust(3)+"%")
+                        sys.stdout.write("\rCalculating solution ... "+str(cell*10).rjust(3)+"%")
                         sys.stdout.flush()
 
                 for solution in solutions:
-                    if isValidSolution(solution):
+                    if is_valid_solution(solution):
                         return solution
                 return None
 
-    if isValidSolution(sudoku):
+    if is_valid_solution(sudoku):
         return sudoku
     return None
 
@@ -208,7 +208,7 @@ def main():
 
     try:
         img = imread(sys.argv[1], 1)
-        assert(img != None)
+        assert img != None
     except:
         print("Could not open image. Please make sure that the file you specified exists and is a valid image file.")
         sys.exit(1)
@@ -219,17 +219,17 @@ def main():
     else:
         sizecoef = 800 / img.shape[1]
     if sizecoef < 1:
-        img = resize(img, (0,0), fx=sizecoef, fy=sizecoef)
+        img = resize(img, (0, 0), fx=sizecoef, fy=sizecoef)
 
-    debugImage(img, "img")
+    debug_image(img, "img")
 
     sys.stdout.write("Preparing image ...")
     sys.stdout.flush()
-    if debug:
-        projection = projectImage(img)
+    if DEBUG:
+        projection = project_image(img)
     else:
         try:
-            projection = projectImage(img)
+            projection = project_image(img)
         except:
             print("\rPreparing image ... failed.")
             sys.exit(1)
@@ -237,34 +237,34 @@ def main():
 
     sys.stdout.write("Extracting data ...")
     sys.stdout.flush()
-    if debug:
-        sudoku = extractSudoku(projection)
+    if DEBUG:
+        sudoku = extract_sudoku(projection)
     else:
         try:
-            sudoku = extractSudoku(projection)
+            sudoku = extract_sudoku(projection)
         except:
             print("\rExtracting data ... failed.")
             sys.exit(1)
     print("\rExtracting data ... done.")
 
     print("")
-    printSudoku(sudoku)
+    print_sudoku(sudoku)
     print("")
 
     sys.stdout.write("Calculating solution ...")
     sys.stdout.flush()
-    if debug:
-        solution = solveSudoku(sudoku)
+    if DEBUG:
+        solution = solve_sudoku(sudoku)
     else:
         try:
-            solution = solveSudoku(sudoku)
+            solution = solve_sudoku(sudoku)
         except:
             print("\rCalculating solution ... failed.")
             sys.exit(1)
     print("\rCalculating solution ... done.")
 
     print("")
-    printSudoku(solution)
+    print_sudoku(solution)
     print("")
 
 
