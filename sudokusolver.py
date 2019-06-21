@@ -119,17 +119,17 @@ def extract_sudoku(img):
             cv2.imwrite(tesinput, thresh)
 
             try:
-                subprocess.check_output("tesseract "+tesinput+" "+tesoutput[:-4]+" -psm 10", shell=True)
+                subprocess.check_output("tesseract "+tesinput+" "+tesoutput[:-4]+" --psm 10 quiet", shell=True)
                 digit = int(open(tesoutput, "r").read())
             except:
                 digit = 0
 
-            try:
-                os.remove(tesinput)
-                os.remove(tesoutput)
-            except:
-                print("Failed to delete temp files. Probably some bullshit with permissions.")
-                sys.exit(1)
+            # try:
+            #     os.remove(tesinput)
+            #     os.remove(tesoutput)
+            # except:
+            #     print("Failed to delete temp files. Probably some bullshit with permissions.")
+            #     sys.exit(1)
 
             sudoku_temp.append(digit)
             sys.stdout.write("\r"+"Extracting data ... "+str(int((row*9+col+1)/81*100)).rjust(3)+"%")
